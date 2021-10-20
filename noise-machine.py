@@ -27,7 +27,7 @@ button1 = gpiozero.Button('BOARD29')
 button2 = gpiozero.Button('BOARD31')
 button3 = gpiozero.Button('BOARD33')
 button4 = gpiozero.Button('BOARD35')
-button5 = gpiozero.Button('Board37')
+button5 = gpiozero.Button('BOARD37')
 
 
 button1.when_activated = button1_action

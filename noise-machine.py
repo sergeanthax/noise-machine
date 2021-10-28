@@ -5,17 +5,27 @@ import enum
 import time
 
 
-class PressType(enum):
+class PressType(enum.Enum):
     SINGLE = 1
     DOUBLE = 2
 
 
 class NoiseMachine:
     def __init__(self):
-        self.logger = logging.Logger()
         self.button_presses = {}
-        
-        logging.basicConfig(filename='noise_machine.log', level=logging.DEBUG)
+        logger_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+
+        self.logger = logging.getLogger('noise-machine')
+
+        self.logger.setLevel(logging.DEBUG)
+
+        stream_handler = logging.StreamHandler()
+        stream_handler.setFormatter(logger_formatter)
+        self.logger.addHandler(stream_handler)
+
+        file_handler = logging.FileHandler('noise-machine.log')
+        file_handler.setFormatter(logger_formatter)
+        self.logger.addHandler(file_handler)
 
         self.init_buttons()
 
@@ -25,10 +35,11 @@ class NoiseMachine:
         Master function which monitors button presses and calls appropriate actions.
         """
         
-        self.logger.debug('Starting monitor loops.')
+        self.logger.info('Starting button monitor.')
 
         while True:
             for key in self.button_presses.keys():
+
                 if self.button_presses[key] == 1:
                     self.play_sound(PressType.SINGLE, key)
 
@@ -47,6 +58,11 @@ class NoiseMachine:
         elif press_type == PressType.DOUBLE:
             file_name = '{}double.mp3'.format(button_number)
 
+        else:
+            raise RuntimeError('Invalid PressType for play_sound.')
+
+        self.logger.debug('Playing sound {}.'.format(file_name))
+
         subprocess.run(['mpg321', file_name], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
 
     
@@ -55,7 +71,7 @@ class NoiseMachine:
         Initialize GPIO inputs and assign callbacks to activation functions.
         """
 
-        self.logger.debug('Initializing buttons.')
+        self.logger.info('Initializing buttons.')
 
         button1 = gpiozero.Button('BOARD29')
         button2 = gpiozero.Button('BOARD31')
@@ -70,10 +86,13 @@ class NoiseMachine:
         button4.when_activated = lambda: self.button_press(4)
         button5.when_activated = lambda: self.button_press(5)
 
-        self.logger.debug('Buttons initialized.')
+        self.logger.info('Buttons initialized.')
 
 
     def button_press(self, button_number: int):
+        """
+        
+        """
         if self.button_presses.get(button_number) is not None:
             self.logger.debug("Button {0} has been pressed for the first time.".format(button_number))
 

@@ -3,6 +3,7 @@ import gpiozero
 import logging
 import enum
 import time
+import threading
 
 
 class PressType(enum.Enum):
@@ -12,13 +13,15 @@ class PressType(enum.Enum):
 
 class NoiseMachine:
     def __init__(self):
-        self.button_presses = {}
+        self.last_button_pressed = 0
         self.buttons = []
-        logger_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        self.button_event = threading.Event()
 
         self.logger = logging.getLogger('noise-machine')
 
         self.logger.setLevel(logging.DEBUG)
+
+        logger_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 
         stream_handler = logging.StreamHandler()
         stream_handler.setFormatter(logger_formatter)
@@ -39,17 +42,27 @@ class NoiseMachine:
         self.logger.info('Starting button monitor.')
 
         while True:
-            for key in self.button_presses.keys():
+            self.button_event.wait()
 
-                if self.button_presses[key] == 1:
-                    self.play_sound(PressType.SINGLE, key)
+            self.logger.debug('Button {} was pressed, waiting for double press.'.format(self.last_button_pressed))
 
-                elif self.button_presses[key] == 2:
-                    self.play_sound(PressType.DOUBLE, key)
+            moinitored_button = self.last_button_pressed
 
-                self.button_presses[key] = 0
+            self.button_event.clear()
 
-            time.sleep(0.2)
+            self.button_event.wait(0.2)
+
+            if self.last_button_pressed == moinitored_button:
+                if self.button_event.is_set():
+                    self.play_sound(PressType.DOUBLE, moinitored_button)
+                
+                else:
+                    self.play_sound(PressType.SINGLE, moinitored_button)
+            
+            else:
+                self.logger.debug('A button other than button {} was pressed, aborting sound playing.'.format(moinitored_button))
+
+            self.button_event.clear()
 
 
     def play_sound(self, press_type: PressType, button_number: int):
@@ -93,15 +106,9 @@ class NoiseMachine:
         """
         
         """
-        if self.button_presses.get(button_number) is None:
-            self.logger.debug("Button {0} has been pressed for the first time.".format(button_number))
-
-            self.button_presses[button_number] = 1
-
-        else:
-            self.button_presses[button_number] += 1
-
-            self.logger.debug("Button {0} has been pressed {1} time(s) since last poll.".format(button_number, self.button_presses[button_number]))
+        self.logger.debug("Button {0} has been pressed.".format(button_number))
+        self.last_button_pressed = button_number
+        self.button_event.set()
 
 
 if __name__ == '__main__':

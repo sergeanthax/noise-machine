@@ -93,7 +93,7 @@ class NoiseMachine:
         """
         
         """
-        if self.button_presses.get(button_number) is not None:
+        if self.button_presses.get(button_number) is None:
             self.logger.debug("Button {0} has been pressed for the first time.".format(button_number))
 
             self.button_presses[button_number] = 1
@@ -101,7 +101,7 @@ class NoiseMachine:
         else:
             self.button_presses[button_number] += 1
 
-            self.logger.debug("Button {0} has been pressed {1} time(s) since last poll.".fomat(button_number, self.button_presses[button_number]))
+            self.logger.debug("Button {0} has been pressed {1} time(s) since last poll.".format(button_number, self.button_presses[button_number]))
 
 
 if __name__ == '__main__':

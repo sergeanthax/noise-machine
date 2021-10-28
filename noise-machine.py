@@ -13,6 +13,7 @@ class PressType(enum.Enum):
 class NoiseMachine:
     def __init__(self):
         self.button_presses = {}
+        self.buttons = []
         logger_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 
         self.logger = logging.getLogger('noise-machine')
@@ -73,18 +74,17 @@ class NoiseMachine:
 
         self.logger.info('Initializing buttons.')
 
-        button1 = gpiozero.Button('BOARD29')
-        button2 = gpiozero.Button('BOARD31')
-        button3 = gpiozero.Button('BOARD33')
-        button4 = gpiozero.Button('BOARD35')
-        button5 = gpiozero.Button('BOARD37')
+        self.buttons.append(gpiozero.Button('BOARD29'))
+        self.buttons.append(gpiozero.Button('BOARD31'))
+        self.buttons.append(gpiozero.Button('BOARD33'))
+        self.buttons.append(gpiozero.Button('BOARD35'))
+        self.buttons.append(gpiozero.Button('BOARD37'))
 
-
-        button1.when_activated = lambda: self.button_press(1)
-        button2.when_activated = lambda: self.button_press(2)
-        button3.when_activated = lambda: self.button_press(3)
-        button4.when_activated = lambda: self.button_press(4)
-        button5.when_activated = lambda: self.button_press(5)
+        self.buttons[0].when_pressed = lambda: self.button_press(1)
+        self.buttons[1].when_pressed = lambda: self.button_press(2)
+        self.buttons[2].when_pressed = lambda: self.button_press(3)
+        self.buttons[3].when_pressed = lambda: self.button_press(4)
+        self.buttons[4].when_pressed = lambda: self.button_press(5)
 
         self.logger.info('Buttons initialized.')
 

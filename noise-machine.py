@@ -73,17 +73,17 @@ class NoiseMachine:
 
     def play_sound(self, press_type: PressType, button_number: int):
         if press_type == PressType.SINGLE:
-            file_name = '{}single.mp3'.format(button_number)
+            file_name = '{}single.wav'.format(button_number)
 
         elif press_type == PressType.DOUBLE:
-            file_name = '{}double.mp3'.format(button_number)
+            file_name = '{}double.wav'.format(button_number)
 
         else:
             raise RuntimeError('Invalid PressType for play_sound.')
 
         self.logger.debug('Playing sound {}.'.format(file_name))
 
-        subprocess.run(['mpg321', file_name], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+        subprocess.run(['aplay', '-D', 'bluealsa', file_name], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
 
 
     def __init_buttons(self):

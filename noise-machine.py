@@ -2,7 +2,6 @@ import subprocess
 import gpiozero
 import logging
 import enum
-import time
 import threading
 
 
@@ -38,33 +37,38 @@ class NoiseMachine:
         """
         Master function which monitors button presses and calls appropriate actions.
         """
-        
+
         self.logger.info('Starting button monitor.')
 
         while True:
-            self.button_event.wait()
+            try:
+                self.button_event.wait()
 
-            self.logger.debug('Button {} was pressed, waiting for double press.'.format(self.last_button_pressed))
+                self.logger.debug('Button {} was pressed, waiting for double press.'.format(self.last_button_pressed))
 
-            moinitored_button = self.last_button_pressed
+                moinitored_button = self.last_button_pressed
 
-            self.button_event.clear()
+                self.button_event.clear()
 
-            self.button_event.wait(0.2)
+                self.button_event.wait(0.2)
 
-            if self.last_button_pressed == moinitored_button:
-                if self.button_event.is_set():
-                    self.logger.debug('Button {} was double-pressed.'.format(moinitored_button))
-                    self.play_sound(PressType.DOUBLE, moinitored_button)
-                
+                if self.last_button_pressed == moinitored_button:
+                    if self.button_event.is_set():
+                        self.logger.debug('Button {} was double-pressed.'.format(moinitored_button))
+                        self.play_sound(PressType.DOUBLE, moinitored_button)
+
+                    else:
+                        self.logger.debug('Button {} was single-pressed.'.format(moinitored_button))
+                        self.play_sound(PressType.SINGLE, moinitored_button)
+
                 else:
-                    self.logger.debug('Button {} was single-pressed.'.format(moinitored_button))
-                    self.play_sound(PressType.SINGLE, moinitored_button)
-            
-            else:
-                self.logger.debug('A button other than button {} was pressed, aborting sound playing.'.format(moinitored_button))
+                    self.logger.debug('A button other than button {} was pressed, aborting sound playing.'.format(moinitored_button))
 
-            self.button_event.clear()
+                self.button_event.clear()
+
+            except KeyboardInterrupt:
+                self.logger.info('Interrupt recieved, exiting.')
+                break
 
 
     def play_sound(self, press_type: PressType, button_number: int):
@@ -81,7 +85,7 @@ class NoiseMachine:
 
         subprocess.run(['mpg321', file_name], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
 
-    
+
     def __init_buttons(self):
         """
         Initialize GPIO inputs and assign callbacks to activation functions.

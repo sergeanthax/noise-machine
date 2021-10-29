@@ -31,7 +31,7 @@ class NoiseMachine:
         file_handler.setFormatter(logger_formatter)
         self.logger.addHandler(file_handler)
 
-        self.init_buttons()
+        self.__init_buttons()
 
 
     def monitor(self):
@@ -54,9 +54,11 @@ class NoiseMachine:
 
             if self.last_button_pressed == moinitored_button:
                 if self.button_event.is_set():
+                    self.logger.debug('Button {} was double-pressed.'.format(moinitored_button))
                     self.play_sound(PressType.DOUBLE, moinitored_button)
                 
                 else:
+                    self.logger.debug('Button {} was single-pressed.'.format(moinitored_button))
                     self.play_sound(PressType.SINGLE, moinitored_button)
             
             else:
@@ -80,7 +82,7 @@ class NoiseMachine:
         subprocess.run(['mpg321', file_name], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
 
     
-    def init_buttons(self):
+    def __init_buttons(self):
         """
         Initialize GPIO inputs and assign callbacks to activation functions.
         """
@@ -93,20 +95,19 @@ class NoiseMachine:
         self.buttons.append(gpiozero.Button('BOARD35'))
         self.buttons.append(gpiozero.Button('BOARD37'))
 
-        self.buttons[0].when_pressed = lambda: self.button_press(1)
-        self.buttons[1].when_pressed = lambda: self.button_press(2)
-        self.buttons[2].when_pressed = lambda: self.button_press(3)
-        self.buttons[3].when_pressed = lambda: self.button_press(4)
-        self.buttons[4].when_pressed = lambda: self.button_press(5)
+        self.buttons[0].when_pressed = lambda: self.__button_press(1)
+        self.buttons[1].when_pressed = lambda: self.__button_press(2)
+        self.buttons[2].when_pressed = lambda: self.__button_press(3)
+        self.buttons[3].when_pressed = lambda: self.__button_press(4)
+        self.buttons[4].when_pressed = lambda: self.__button_press(5)
 
         self.logger.info('Buttons initialized.')
 
 
-    def button_press(self, button_number: int):
+    def __button_press(self, button_number: int):
         """
-        
+        Handler to be registered with gpiozero for each button.
         """
-        self.logger.debug("Button {0} has been pressed.".format(button_number))
         self.last_button_pressed = button_number
         self.button_event.set()
 

@@ -1,6 +1,11 @@
+"""
+Noise machine for a Raspberry Pi.
+
+Uses the GPIO pins mapped to buttons to trigger sounds to be played by the Raspberry Pi.
+"""
+
 import subprocess
 from typing import Dict, List, Optional, Tuple
-import gpiozero
 import logging
 import enum
 import threading
@@ -8,19 +13,34 @@ import os
 from dataclasses import dataclass, field
 import random
 
+import gpiozero
+
 
 class PressType(enum.Enum):
+    """
+    Enum for denoting the different possible press types.
+    """
+
     SINGLE = 1
     DOUBLE = 2
 
 
 class GeneratorType(enum.Enum):
+    """
+    Enum for listing the possible filename generator types.
+    Used by FilenameGenerator to determine in what order to return filenames passed to it.
+    """
+
     SINGLE = 1
     SEQUENCE = 2
     RANDOM = 3
 
 
 class FilenameGenerator:
+    """
+    Generator class which returns an infinite list of filenames.
+    """
+
     def __init__(self, filenames: List[Tuple[int, str]], generator_type: GeneratorType):
         self.__filenames: List[Tuple[int, str]] = filenames
         self.generator_type = generator_type
@@ -33,10 +53,13 @@ class FilenameGenerator:
         return self.next()
 
     def next(self) -> str:
+        """
+        Return the next filename in the sequence.
+        """
         if self.generator_type == GeneratorType.SINGLE:
             return self.__filenames[0][1]
 
-        elif self.generator_type == GeneratorType.SEQUENCE:
+        if self.generator_type == GeneratorType.SEQUENCE:
             filename = self.__filenames[self.__counter]
 
             self.__counter += 1
@@ -46,13 +69,18 @@ class FilenameGenerator:
 
             return filename[1]
 
-        elif self.generator_type == GeneratorType.RANDOM:
+        if self.generator_type == GeneratorType.RANDOM:
             if len(self.__filenames) >= 2:
                 return self.__filenames[random.randrange(0, len(self.__filenames))][1]
-            else:
-                return self.__filenames[0][1]
+
+            return self.__filenames[0][1]
+
+        raise NotImplementedError("Invalid GeneratorType.")
 
     def add_filename(self, filename, position) -> None:
+        """
+        Add a filename to the list of filenames to be used by the generator.
+        """
         if self.generator_type == GeneratorType.SINGLE:
             raise RuntimeError("GeneratorType single can only have one filename.")
 
@@ -62,6 +90,11 @@ class FilenameGenerator:
 
 @dataclass
 class ButtonData:
+    """
+    Data object representing the data associated with the button,
+    including the gpiozero button object itself as well as actions assigned to the button.
+    """
+
     gpio_object: gpiozero.Button = None
     button_id: int = None
     filename_generators: Dict[PressType, FilenameGenerator] = field(
@@ -69,7 +102,13 @@ class ButtonData:
     )
 
 
+# pylint: disable=too-few-public-methods
 class NoiseMachine:
+    """
+    Orchestrator class for creating and monitoring the buttons,
+    as well as playing the sounds when required.
+    """
+
     def __init__(self):
         self.last_button_pressed = 0
         self.buttons: Dict[int, ButtonData] = {}
@@ -108,9 +147,8 @@ class NoiseMachine:
                     continue
 
                 self.logger.debug(
-                    "Button {} was pressed, waiting for double press.".format(
-                        self.last_button_pressed
-                    )
+                    "Button %s was pressed, waiting for double press.",
+                    self.last_button_pressed,
                 )
 
                 moinitored_button = self.last_button_pressed
@@ -122,7 +160,7 @@ class NoiseMachine:
                 if self.last_button_pressed == moinitored_button:
                     if self.button_event.is_set():
                         self.logger.debug(
-                            "Button {} was double-pressed.".format(moinitored_button)
+                            "Button %s was double-pressed.", moinitored_button
                         )
                         self.__play_sound(
                             self.buttons[moinitored_button].filename_generators.get(
@@ -132,7 +170,7 @@ class NoiseMachine:
 
                     else:
                         self.logger.debug(
-                            "Button {} was single-pressed.".format(moinitored_button)
+                            "Button %s was single-pressed.", moinitored_button
                         )
                         self.__play_sound(
                             self.buttons[moinitored_button].filename_generators.get(
@@ -142,9 +180,8 @@ class NoiseMachine:
 
                 else:
                     self.logger.debug(
-                        "A button other than button {} was pressed, aborting sound playing.".format(
-                            moinitored_button
-                        )
+                        "A button other than button %s was pressed, aborting sound playing.",
+                        moinitored_button,
                     )
 
                 self.button_event.clear()
@@ -160,17 +197,19 @@ class NoiseMachine:
 
         file_name = button_number.next()
 
-        self.logger.debug("Playing sound {}.".format(file_name))
+        self.logger.debug("Playing sound %s.", file_name)
 
         subprocess.run(
             ["aplay", "-D", "bluealsa", file_name],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.STDOUT,
+            check=False,
         )
 
         # Clear button event in case it was pressed during sound playing
         self.button_event.clear()
 
+    # pylint: disable=too-many-branches
     def __init_buttons(self):
         """
         Initialize GPIO inputs and assign callbacks to activation functions.
@@ -180,7 +219,7 @@ class NoiseMachine:
 
         files = [x for x in os.listdir() if os.path.isfile(x) and x.endswith(".wav")]
 
-        self.logger.debug("Found files: " + ", ".join(files))
+        self.logger.debug("Found files: %s", ", ".join(files))
 
         for file in files:
             split_filename = file[:-4].split("-")
@@ -267,9 +306,10 @@ class NoiseMachine:
                         ] = FilenameGenerator([(1, file)], GeneratorType.SINGLE)
 
                 else:
-                    self.logger.warning("Invalid filename '{}'".format(file))
+                    self.logger.warning("Invalid filename '%s'", file)
 
-                    # Since the new button is invalid, close underlying GPIO pin if no other button actions are assigned to it.
+                    # Since the new button is invalid,
+                    # close underlying GPIO pin if no other button actions are assigned to it.
                     if len(new_button.filename_generators) < 1:
                         new_button.gpio_object.close()
 

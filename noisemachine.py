@@ -217,9 +217,6 @@ class NoiseMachine:
             stderr=subprocess.STDOUT,
         )
 
-        # Clear button event in case it was pressed during sound playing
-        self.button_event.clear()
-
     # pylint: disable=too-many-branches
     def __init_buttons(self):
         """

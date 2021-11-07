@@ -1,7 +1,5 @@
-from posixpath import split
 import subprocess
-from types import NoneType
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Optional, Tuple
 import gpiozero
 import logging
 import enum
@@ -55,7 +53,7 @@ class FilenameGenerator:
 
         elif self.generator_type == GeneratorType.RANDOM:
             if len(self.__filenames) >= 2:
-                return self.__filenames[random.randrange(0, len(self.__filenames) - 1)][1]
+                return self.__filenames[random.randrange(0, len(self.__filenames))][1]
             else:
                 return self.__filenames[0][1]
 
@@ -119,7 +117,7 @@ class NoiseMachine:
 
                 self.button_event.clear()
 
-                self.button_event.wait(0.2)
+                self.button_event.wait(0.25)
 
                 if self.last_button_pressed == moinitored_button:
                     if self.button_event.is_set():
@@ -140,7 +138,7 @@ class NoiseMachine:
                 break
 
 
-    def __play_sound(self, button_number: Union[FilenameGenerator, NoneType]) -> None:
+    def __play_sound(self, button_number: Optional[FilenameGenerator]) -> None:
         # Nothing to do, no action was assigned to this button press type.
         if button_number is None:
             return
@@ -150,6 +148,9 @@ class NoiseMachine:
         self.logger.debug('Playing sound {}.'.format(file_name))
 
         subprocess.run(['aplay', '-D', 'bluealsa', file_name], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+
+        # Clear button event in case it was pressed during sound playing
+        self.button_event.clear()
 
 
     def __init_buttons(self):
@@ -164,7 +165,7 @@ class NoiseMachine:
         self.logger.debug('Found files: ' + ', '.join(files))
 
         for file in files:
-            split_filename = file.removesuffix('.wav').split('-')
+            split_filename = file[:-4].split('-')
             button_id = int(split_filename[0])
 
             if self.buttons.get(button_id) is not None:

@@ -10,6 +10,7 @@ import logging
 import enum
 import threading
 import os
+import shutil
 from dataclasses import dataclass, field
 import random
 
@@ -113,6 +114,7 @@ class NoiseMachine:
         self.last_button_pressed = 0
         self.buttons: Dict[int, ButtonData] = {}
         self.button_event = threading.Event()
+        self.sound_player = None
 
         self.logger = logging.getLogger("noise-machine")
 
@@ -144,6 +146,15 @@ class NoiseMachine:
                 self.button_event.wait(timeout=2)
 
                 if not self.button_event.is_set():
+                    continue
+
+                if self.sound_player is not None and self.sound_player.poll() is None:
+                    self.sound_player.terminate()
+
+                    self.logger.debug(
+                        "Button press received while sound was playing, interrupting playback."
+                    )
+                    self.button_event.clear()
                     continue
 
                 self.logger.debug(
@@ -199,11 +210,11 @@ class NoiseMachine:
 
         self.logger.debug("Playing sound %s.", file_name)
 
-        subprocess.run(
-            ["aplay", "-D", "bluealsa", file_name],
+        # pylint: disable=consider-using-with
+        self.sound_player = subprocess.Popen(
+            [shutil.which("aplay"), "-D", "bluealsa", file_name],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.STDOUT,
-            check=False,
         )
 
         # Clear button event in case it was pressed during sound playing

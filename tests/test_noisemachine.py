@@ -2,7 +2,6 @@ import unittest
 from gpiozero import Device
 from gpiozero.pins.mock import MockFactory
 from noisemachine import NoiseMachine
-import noisemachine
 from os import chdir
 from os.path import realpath, split
 from unittest import mock

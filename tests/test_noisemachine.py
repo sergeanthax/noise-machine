@@ -1,3 +1,4 @@
+from enum import auto
 import unittest
 from gpiozero import Device
 from gpiozero.pins.mock import MockFactory
@@ -34,7 +35,7 @@ class TestNoiseMachine(unittest.TestCase):
 
 
     def test_single_button_single_action(self):
-        with mock.patch('noisemachine.subprocess.Popen') as mock_patch:
+        with mock.patch('noisemachine.subprocess.Popen', autospec=True) as mock_patch:
             self.machine.buttons[5].gpio_object.pin.drive_high()
             sleep(0.1)
             self.machine.buttons[5].gpio_object.pin.drive_low()
@@ -45,7 +46,7 @@ class TestNoiseMachine(unittest.TestCase):
 
 
     def test_double_button_single_action(self):
-        with mock.patch('noisemachine.subprocess.Popen') as mock_patch:
+        with mock.patch('noisemachine.subprocess.Popen', autospec=True) as mock_patch:
             self.machine.buttons[5].gpio_object.pin.drive_high()
             sleep(0.05)
             self.machine.buttons[5].gpio_object.pin.drive_low()
@@ -60,7 +61,7 @@ class TestNoiseMachine(unittest.TestCase):
 
 
     def test_single_button_random_action(self):
-        with mock.patch('noisemachine.subprocess.Popen') as mock_patch:
+        with mock.patch('noisemachine.subprocess.Popen', autospec=True) as mock_patch:
             for _ in range(0, 5):
                 self.machine.buttons[26].gpio_object.pin.drive_high()
                 sleep(0.1)
@@ -75,7 +76,7 @@ class TestNoiseMachine(unittest.TestCase):
 
 
     def test_double_button_random_action(self):
-        with mock.patch('noisemachine.subprocess.Popen') as mock_patch:
+        with mock.patch('noisemachine.subprocess.Popen', autospec=True) as mock_patch:
             for _ in range(0, 5):
                 self.machine.buttons[26].gpio_object.pin.drive_high()
                 sleep(0.05)
@@ -94,7 +95,7 @@ class TestNoiseMachine(unittest.TestCase):
 
 
     def test_unassigned_action(self):
-        with mock.patch('noisemachine.subprocess.Popen') as mock_patch:
+        with mock.patch('noisemachine.subprocess.Popen', autospec=True) as mock_patch:
             self.machine.buttons[6].gpio_object.pin.drive_high()
             sleep(0.1)
             self.machine.buttons[6].gpio_object.pin.drive_low()
@@ -107,7 +108,7 @@ class TestNoiseMachine(unittest.TestCase):
     def test_single_button_sequence_action(self):
         expected_files = ['19-single-sequence-1.wav', '19-single-sequence-2.wav', '19-single-sequence-3.wav']
 
-        with mock.patch('noisemachine.subprocess.Popen') as mock_patch:
+        with mock.patch('noisemachine.subprocess.Popen', autospec=True) as mock_patch:
             for i in range(0, 3):
                 self.machine.buttons[19].gpio_object.pin.drive_high()
                 sleep(0.1)
@@ -122,7 +123,7 @@ class TestNoiseMachine(unittest.TestCase):
     def test_double_button_sequence_action(self):
         expected_files = ['19-double-sequence-1.wav', '19-double-sequence-2.wav', '19-double-sequence-3.wav']
 
-        with mock.patch('noisemachine.subprocess.Popen') as mock_patch:
+        with mock.patch('noisemachine.subprocess.Popen', autospec=True) as mock_patch:
             for i in range(0, 3):
                 self.machine.buttons[19].gpio_object.pin.drive_high()
                 sleep(0.05)
@@ -136,3 +137,20 @@ class TestNoiseMachine(unittest.TestCase):
 
             self.assertTrue(self.monitor_thread.is_alive())
 
+
+    def test_playback_interrupt(self):
+        with mock.patch('noisemachine.subprocess.Popen', autospec=True) as mock_patch:
+            mock_patch.return_value.poll.return_value = None
+
+            self.machine.buttons[5].gpio_object.pin.drive_high()
+            sleep(0.05)
+            self.machine.buttons[5].gpio_object.pin.drive_low()
+            sleep(1)
+            self.machine.buttons[5].gpio_object.pin.drive_high()
+            sleep(0.05)
+            self.machine.buttons[5].gpio_object.pin.drive_low()
+            sleep(0.5)
+            self.assertTrue(self.monitor_thread.is_alive())
+            self.assertTrue(mock_patch.called)
+            self.assertEqual(mock_patch.call_args.args[0][3], '5-single.wav')
+            self.assertTrue(mock_patch.return_value.terminate.called)

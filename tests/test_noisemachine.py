@@ -27,14 +27,14 @@ class TestNoiseMachine(unittest.TestCase):
         self.stop_event.set()
         for button in self.machine.buttons.values():
             button.gpio_object.close()
-    
+
 
     def test_init(self):
         self.assertNotEqual(self.machine.buttons, [])
-        self.assertEqual(len(self.machine.buttons), 2)
+        self.assertEqual(len(self.machine.buttons), 5)
 
 
-    def test_single_button_press(self):
+    def test_single_button_single_action(self):
         with mock.patch('noisemachine.subprocess.run') as mock_patch:
             self.machine.buttons[5].gpio_object.pin.drive_high()
             sleep(0.1)
@@ -44,8 +44,8 @@ class TestNoiseMachine(unittest.TestCase):
             self.assertTrue(mock_patch.called)
             self.assertEqual(mock_patch.call_args.args, tuple([['aplay', '-D', 'bluealsa', '5-single.wav']]))
 
-    
-    def test_double_button_press(self):
+
+    def test_double_button_single_action(self):
         with mock.patch('noisemachine.subprocess.run') as mock_patch:
             self.machine.buttons[5].gpio_object.pin.drive_high()
             sleep(0.05)
@@ -58,3 +58,82 @@ class TestNoiseMachine(unittest.TestCase):
             self.assertTrue(self.monitor_thread.is_alive())
             self.assertTrue(mock_patch.called)
             self.assertEqual(mock_patch.call_args.args, tuple([['aplay', '-D', 'bluealsa', '5-double.wav']]))
+
+
+    def test_single_button_random_action(self):
+        with mock.patch('noisemachine.subprocess.run') as mock_patch:
+            for _ in range(0, 5):
+                self.machine.buttons[26].gpio_object.pin.drive_high()
+                sleep(0.1)
+                self.machine.buttons[26].gpio_object.pin.drive_low()
+                sleep(0.5)
+
+                self.assertIn(mock_patch.call_args.args[0][3], ['26-single-random-1.wav', '26-single-random-2.wav', '26-single-random-3.wav'])
+
+            self.assertTrue(self.monitor_thread.is_alive())
+            self.assertTrue(mock_patch.called)
+            self.assertEqual(mock_patch.call_count, 5)
+
+
+    def test_double_button_random_action(self):
+        with mock.patch('noisemachine.subprocess.run') as mock_patch:
+            for _ in range(0, 5):
+                self.machine.buttons[26].gpio_object.pin.drive_high()
+                sleep(0.05)
+                self.machine.buttons[26].gpio_object.pin.drive_low()
+                sleep(0.1)
+                self.machine.buttons[26].gpio_object.pin.drive_high()
+                sleep(0.05)
+                self.machine.buttons[26].gpio_object.pin.drive_low()
+                sleep(0.5)
+
+                self.assertIn(mock_patch.call_args.args[0][3], ['26-double-random-1.wav', '26-double-random-2.wav', '26-double-random-3.wav'])
+
+            self.assertTrue(self.monitor_thread.is_alive())
+            self.assertTrue(mock_patch.called)
+            self.assertEqual(mock_patch.call_count, 5)
+
+
+    def test_unassigned_action(self):
+        with mock.patch('noisemachine.subprocess.run') as mock_patch:
+            self.machine.buttons[6].gpio_object.pin.drive_high()
+            sleep(0.1)
+            self.machine.buttons[6].gpio_object.pin.drive_low()
+            sleep(0.5)
+
+            self.assertTrue(self.monitor_thread.is_alive())
+            self.assertFalse(mock_patch.called)
+
+
+    def test_single_button_sequence_action(self):
+        expected_files = ['19-single-sequence-1.wav', '19-single-sequence-2.wav', '19-single-sequence-3.wav']
+
+        with mock.patch('noisemachine.subprocess.run') as mock_patch:
+            for i in range(0, 3):
+                self.machine.buttons[19].gpio_object.pin.drive_high()
+                sleep(0.1)
+                self.machine.buttons[19].gpio_object.pin.drive_low()
+                sleep(0.5)
+
+                self.assertEqual(mock_patch.call_args.args[0][3], expected_files[i])
+
+            self.assertTrue(self.monitor_thread.is_alive())
+
+
+    def test_double_button_sequence_action(self):
+        expected_files = ['19-double-sequence-1.wav', '19-double-sequence-2.wav', '19-double-sequence-3.wav']
+
+        with mock.patch('noisemachine.subprocess.run') as mock_patch:
+            for i in range(0, 3):
+                self.machine.buttons[19].gpio_object.pin.drive_high()
+                sleep(0.05)
+                self.machine.buttons[19].gpio_object.pin.drive_low()
+                sleep(0.1)
+                self.machine.buttons[19].gpio_object.pin.drive_high()
+                sleep(0.05)
+                self.machine.buttons[19].gpio_object.pin.drive_low()
+                sleep(0.5)
+                self.assertEqual(mock_patch.call_args.args[0][3], expected_files[i])
+
+            self.assertTrue(self.monitor_thread.is_alive())
+
